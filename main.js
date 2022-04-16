@@ -143,16 +143,17 @@ function updateLayouts() {
     );
 }
 
-function updateInfo() {
+async function updateInfo() {
     layoutList.innerHTML = "";
     infoJson.value = "";
 
-    getKeyboard(keyboardList.value).then(
-        info => {
-            infoJson.value = JSON.stringify(info);
-            updateLayouts();
-        }
-    ).catch(e => console.log('failed to parse keyboard', e));
+    try {
+        const info = await getKeyboard(keyboardList.value);
+        infoJson.value = JSON.stringify(info);
+        updateLayouts();
+    } catch (error) {
+        console.log('failed to parse keyboard', error)
+    }
 }
 
 
@@ -211,4 +212,4 @@ async function main() {
     }));
 }
 
-main().then();
+main();
