@@ -79,7 +79,7 @@ function parseInfoJson(info, layoutName) {
             },
             mode: "SINGLE",
             startup: 1,
-            peripheral: { max_interval: 30, min_interval: 30, slave_latency: 7 },
+            peripheral: { max_interval: 30, min_interval: 30, slave_latency: 16 },
             central: { max_interval: 30, min_interval: 30, slave_latency: 0 },
             led: { pin: ledPin, num: ledNum },
             keymap: { locale: "US", use_ascii: 0 },
