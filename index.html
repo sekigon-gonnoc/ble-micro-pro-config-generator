@@ -1,0 +1,55 @@
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <style>
+        #main{
+            display: flex; flex-direction: column;
+        }
+        input {
+            height: 2em;
+        }
+        .selector {
+            display: flex;
+            margin: 2px;
+        }
+        #convert {
+            text-align: left;
+            margin-top: 5px;
+            height: 50px;
+        }
+        textarea{
+            resize: none;
+            min-height: 15em;
+        }
+        p{
+            max-width: 100%;
+            overflow-wrap: normal;
+        }
+        select{
+            width: 100%;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="main" >
+        <input id="search" type="text" placeholder="search" />
+        <div class="selector">
+            <label>keyboard:</label>
+            <select id="keyboard-list" title="keyboards">
+                <option style="display: none;">loading...</option>
+            </select>
+        </div>
+        <textarea id="info" placeholder="info.json"></textarea>
+        <div class="selector">
+        layout:
+        <select id="layout-list" title="layouts"></select>
+        </div>
+        <button id="convert">convert</button>
+    <div id="results"> </div>
+    </div>
+    <script src="main.js"></script>
+</body>
+
+</html>
