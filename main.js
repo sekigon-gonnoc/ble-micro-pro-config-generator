@@ -28,8 +28,17 @@ function getDiodeDir(str) {
 
 function parseInfoJson(info, layoutName) {
     console.log(info);
-    const row = info.matrix_pins.rows.map(r => PIN_TABLE[r]);
-    const col = info.matrix_pins.cols.map(r => PIN_TABLE[r]);
+
+    let row, col;
+
+    if (info.matrix_pins.direct) {
+        row = [0];
+        col = info.matrix_pins.direct.flat(Infinity).map(r => (r == null) ? 0 : PIN_TABLE[r]);
+        console.log(info.matrix_pins);
+    } else {
+        row = info.matrix_pins.rows.map(r => (r == null) ? 0 : PIN_TABLE[r]);
+        col = info.matrix_pins.cols.map(r => (r == null) ? 0 : PIN_TABLE[r]);
+    }
     console.log(row, col);
 
     if(row.some(n=>n==null) || col.some(n=>n==null)){
@@ -87,7 +96,7 @@ function parseInfoJson(info, layoutName) {
         }
     };
 
-    if (!info.split?.enabled && config.config.matrix.row != config.config.matrix.col) {
+    if (!info.matrix_pins.direct && !info.split?.enabled && config.config.matrix.row != config.config.matrix.col) {
         // may be row2col2row or col2row2col
         config.config.matrix.diode_direction += 4;
     }
