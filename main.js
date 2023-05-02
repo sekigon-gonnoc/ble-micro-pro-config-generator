@@ -75,8 +75,8 @@ function parseInfoJson(info, layoutName) {
                 manufacture: info.manufacturer ?? "", description: ""
             },
             matrix: {
-                row: info.matrix_size.rows,
-                col: info.matrix_size.cols,
+                rows: info.matrix_size.rows,
+                cols: info.matrix_size.cols,
                 device_rows: row.length,
                 device_cols: col.length,
                 debounce: 1,
@@ -96,7 +96,7 @@ function parseInfoJson(info, layoutName) {
         }
     };
 
-    if (!info.matrix_pins.direct && !info.split?.enabled && config.config.matrix.row != config.config.matrix.col) {
+    if (!info.matrix_pins.direct && !info.split?.enabled && config.config.matrix.rows != config.config.matrix.cols) {
         // may be row2col2row or col2row2col
         config.config.matrix.diode_direction += 4;
     }
