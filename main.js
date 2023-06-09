@@ -26,6 +26,29 @@ function getDiodeDir(str) {
     }
 }
 
+function overrideRightConfig(info, config_left) {
+    let config_right = JSON.parse(JSON.stringify(config_left));
+    config_right.config.mode = "SPLIT_SLAVE";
+    config_right.config.matrix.is_left_hand = 0;
+
+    if (info.split?.enabled && info.split?.matrix_pins?.right) {
+        console.log("override matrix_pins for config_right");
+        let row, col;
+        if (info.split?.matrix_pins?.right.direct) {
+            row = [0];
+            col = info.split.matrix_pins.right.direct.flat(Infinity).map(r => (r == null) ? 0 : PIN_TABLE[r]);
+            console.log(info.split.matrix_pins);
+        } else {
+            row = info.split.matrix_pins.right.rows.map(r => (r == null) ? 0 : PIN_TABLE[r]);
+            col = info.split.matrix_pins.right.cols.map(r => (r == null) ? 0 : PIN_TABLE[r]);
+        }
+        config_right.config.matrix.row_pins = row;
+        config_right.config.matrix.col_pins = col;
+    }
+
+    return config_right;
+}
+
 function parseInfoJson(info, layoutName) {
     console.log(info);
 
@@ -41,18 +64,20 @@ function parseInfoJson(info, layoutName) {
     }
     console.log(row, col);
 
-    if(row.some(n=>n==null) || col.some(n=>n==null)){
+    if (row.some(n => n == null) || col.some(n => n == null)) {
         console.log('not pro micro');
         throw Error("This keyboard may not use Pro Micro");
     }
 
     const infoLayout = info.layouts[layoutName].layout;
     console.log(infoLayout);
+    row_size = Math.max(...infoLayout.map(m => m.matrix[0])) + 1;
+    col_size = Math.max(...infoLayout.map(m => m.matrix[1])) + 1;
     let layout = []
     for (let y = Math.min(...infoLayout.map(l => l.y)); y <= Math.max(...infoLayout.map(l => l.y)); y++) {
         let r = infoLayout.filter(l => l.y >= y && l.y < y + 1).
             sort((a, b) => a.x - b.x).
-            map(l => l.matrix[0] * info.matrix_size.cols + l.matrix[1] + 1)
+            map(l => l.matrix[0] * col_size + l.matrix[1] + 1)
         if (r.length > 0) {
             layout.push(...r);
             layout.push(0);
@@ -67,16 +92,17 @@ function parseInfoJson(info, layoutName) {
     const ledPin = (info.rgblight?.pin) ? PIN_TABLE[info.rgblight.pin] : 255;
     const ledNum = info.rgblight?.led_count ?? 0;
 
-    let config = {
+    let config_left = {
         config: {
             version: 2,
-            device_info: { vid: info.usb.vid,
+            device_info: {
+                vid: info.usb.vid,
                 pid: info.usb.pid, name: info.keyboard_name,
                 manufacture: info.manufacturer ?? "", description: ""
             },
             matrix: {
-                rows: info.matrix_size.rows,
-                cols: info.matrix_size.cols,
+                rows: row.length,
+                cols: col.length,
                 device_rows: row.length,
                 device_cols: col.length,
                 debounce: 1,
@@ -96,34 +122,42 @@ function parseInfoJson(info, layoutName) {
         }
     };
 
-    if (!info.matrix_pins.direct && !info.split?.enabled && config.config.matrix.rows != config.config.matrix.cols) {
+    if (!info.matrix_pins.direct && !info.split?.enabled && config_left.config.matrix.rows * config_left.config.matrix.cols < infoLayout.length) {
         // may be row2col2row or col2row2col
-        config.config.matrix.diode_direction += 4;
+        config_left.config.matrix.diode_direction += 4;
     }
 
-    const baseConfig = JSON.stringify(config);
+    const baseConfig = JSON.stringify(config_left);
 
     if (!info.split?.enabled) {
         return { 'default': baseConfig };
     }
 
-    config.config.mode = "SPLIT_MASTER";
-    const masterConfig = JSON.stringify(config);
+    config_left.config.mode = "SPLIT_MASTER";
+    const config_right = overrideRightConfig(info, config_left);
 
-    config.config.mode = "SPLIT_SLAVE";
-    config.config.matrix.is_left_hand = 0;
-    const slaveConfig = JSON.stringify(config);
+    if (config_left.config.matrix.diode_direction == 0) {
+        config_left.config.matrix.rows += config_right.config.matrix.device_rows;
+        config_right.config.matrix.rows = config_left.config.matrix.rows;
+    }
+    else if (config_left.config.matrix.diode_direction == 1) {
+        config_left.config.matrix.cols += config_right.config.matrix.device_cols;
+        config_right.config.matrix.cols = config_left.config.matrix.cols;
+    }
 
-    if (config.config.matrix.row_pins.some(k => (k == 5 || k == 6))
-        || config.config.matrix.col_pins.some(k => (k == 5 || k == 6))) {
+    const masterConfig = JSON.stringify(config_left);
+    const slaveConfig = JSON.stringify(config_right);
+
+    if (config_left.config.matrix.row_pins.some(k => (k == 5 || k == 6))
+        || config_left.config.matrix.col_pins.some(k => (k == 5 || k == 6))) {
         return { 'master': masterConfig, 'slave': slaveConfig };
     }
 
-    config = JSON.parse(baseConfig);
-    config.config.matrix.row_pins = [...config.config.matrix.row_pins, ...config.config.matrix.row_pins];
-    config.config.matrix.col_pins = [...config.config.matrix.col_pins, ...config.config.matrix.col_pins];
-    config.config.matrix.diode_direction += 2;
-    const lpmeConfig = JSON.stringify(config);
+    config_left = JSON.parse(baseConfig);
+    config_left.config.matrix.row_pins = [...config_left.config.matrix.row_pins, ...config_right.config.matrix.row_pins];
+    config_left.config.matrix.col_pins = [...config_left.config.matrix.col_pins, ...config_right.config.matrix.col_pins];
+    config_left.config.matrix.diode_direction += 2;
+    const lpmeConfig = JSON.stringify(config_left);
 
     console.log(masterConfig);
     console.log(slaveConfig);
